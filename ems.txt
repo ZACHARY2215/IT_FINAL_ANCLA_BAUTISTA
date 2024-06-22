@@ -1,0 +1,464 @@
+//Database.java
+
+import java.io.*;
+import java.util.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
+public class Database {
+    private String fileName;
+
+    public Database(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public void fillToComboBox(JComboBox cbo) {
+        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                cbo.addItem(line);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void storeToFile(String records) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(fileName))) {
+            pw.print(records);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void displayRecords(DefaultTableModel model) {
+        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split("#");
+                Vector<String> rowData = new Vector<>();
+                for (String val : data) {
+                    rowData.add(val);
+                }
+                model.addRow(rowData);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+
+//MainProgram.java
+
+import java.awt.*;
+import javax.swing.*;
+import javax.swing.table.*;
+import java.awt.event.*;
+import java.util.*;
+
+public class MainProgram extends MyFrame implements ActionListener, MouseListener, KeyListener, WindowListener {
+    private JLabel lblSearch;
+    private JTextField txtSearch;
+    private JTable tbl_Employee, tbl_Department, tbl_Position;
+    private DefaultTableModel model_employee, model_department, model_position;
+    private Vector columns, rowData;
+    private TableRowSorter tbl_sort;
+    private JLabel lblID, lblName, lblGender, lblDepartment, lblPosition, lblSalary;
+    private JTextField txtID, txtName, txtSalary;
+    private JComboBox cboGender, cboDepartment, cboPosition;
+    private Font f = new Font("Arial", Font.BOLD, 16);
+    private JButton btnAdd, btnClear, btnUpdate, btnDelete, btnClose;
+    private Database db;
+    private JPanel panelEmployeeInfo, panelButtons, panelSearch, panelTable;
+
+    public MainProgram() {
+        initializeComponents();
+        employeeInfo();
+        add(panelEmployeeInfo).setBounds(10, 10, 300, 200);
+        employeeButtons();
+        add(panelButtons).setBounds(40, 220, 600, 30);
+        add(panelEmployeeSearch()).setBounds(320, 20, 300, 30);
+        add(panelEmployeeTable()).setBounds(320, 50, 550, 290);
+        add(setBackgroundImage("IMAGES/bgImage/bg2.jpeg"));
+        setMyFrame("Employee Management System", 900, 400, true);
+        setLocationRelativeTo(null);
+        txtID.setText(getRowCount());
+        btnAdd.addActionListener(this);
+        btnClear.addActionListener(this);
+        btnUpdate.addActionListener(this);
+        btnDelete.addActionListener(this);
+        btnClose.addActionListener(this);
+        cboDepartment.addActionListener(this);
+        cboPosition.addActionListener(this);
+        tbl_Employee.addMouseListener(this);
+        txtSearch.addKeyListener(this);
+        db = new Database("Employee.txt");
+        db.displayRecords(model_employee);
+        resetComponents();
+    }
+
+    public void initializeComponents() {
+        lblID = new JLabel("ID: ");
+        lblName = new JLabel("Name: ");
+        lblGender = new JLabel("Gender:");
+        lblDepartment = new JLabel("Department:");
+        lblPosition = new JLabel("Position:");
+        lblSalary = new JLabel("Salary:");
+        txtID = new JTextField(20);
+        txtName = new JTextField(20);
+        txtSalary = new JTextField(20);
+        cboGender = new JComboBox();
+        cboDepartment = new JComboBox();
+        cboPosition = new JComboBox();
+        loadToComboBox();
+        btnAdd = new JButton("Add New", new ImageIcon("IMAGES/icon/add_user.png"));
+        btnClear = new JButton("Clear", new ImageIcon("IMAGES/icon/clear.png"));
+        btnUpdate = new JButton("Update");
+        btnDelete = new JButton("Delete");
+        btnClose = new JButton("Close");
+    }
+
+    public void employeeInfo() {
+        panelEmployeeInfo = new JPanel();
+        panelEmployeeInfo.setBorder(BorderFactory.createTitledBorder("Employee Information"));
+        panelEmployeeInfo.setLayout(new GridLayout(6, 2));
+        panelEmployeeInfo.setFont(f);
+        panelEmployeeInfo.setOpaque(false);
+        panelEmployeeInfo.add(lblID);
+        panelEmployeeInfo.add(txtID);
+        panelEmployeeInfo.add(lblName);
+        panelEmployeeInfo.add(txtName);
+        panelEmployeeInfo.add(lblGender);
+        panelEmployeeInfo.add(cboGender);
+        panelEmployeeInfo.add(lblDepartment);
+        panelEmployeeInfo.add(cboDepartment);
+        panelEmployeeInfo.add(lblPosition);
+        panelEmployeeInfo.add(cboPosition);
+        panelEmployeeInfo.add(lblSalary);
+        panelEmployeeInfo.add(txtSalary);
+    }
+
+    public void loadToComboBox() {
+        cboGender.addItem("Male");
+        cboGender.addItem("Female");
+        db = new Database("Department.txt");
+        db.fillToComboBox(cboDepartment);
+        db = new Database("Position.txt");
+        db.fillToComboBox(cboPosition);
+    }
+
+    public void employeeButtons() {
+        panelButtons = new JPanel();
+        panelButtons.setLayout(new GridLayout(1, 5, 4, 2));
+        panelButtons.add(btnAdd);
+        panelButtons.add(btnClear);
+        panelButtons.add(new JLabel(""));
+        panelButtons.add(btnUpdate);
+        panelButtons.add(btnDelete);
+        panelButtons.add(btnClose);
+    }
+
+    public JPanel panelEmployeeSearch() {
+        panelSearch = new JPanel();
+        lblSearch = new JLabel("Search");
+        txtSearch = new JTextField(10);
+        panelSearch.setLayout(new FlowLayout(FlowLayout.LEFT, 2, 1));
+        panelSearch.add(lblSearch);
+        panelSearch.add(txtSearch);
+        panelSearch.setOpaque(false);
+        return panelSearch;
+    }
+
+    public JPanel panelEmployeeTable() {
+        panelTable = new JPanel(new GridLayout(1, 3));
+
+        // Employee Table
+        tbl_Employee = new JTable();
+        model_employee = new DefaultTableModel();
+        String[] cols = { "ID", "Name", "Gender", "Department", "Position", "Salary" };
+        columns = new Vector<>();
+        for (String val : cols) {
+            columns.add(val);
+        }
+        model_employee.setColumnIdentifiers(columns);
+        tbl_Employee.setModel(model_employee);
+        tbl_Employee.setAutoResizeMode(tbl_Employee.AUTO_RESIZE_OFF);
+        JScrollPane scrollEmployee = new JScrollPane(tbl_Employee);
+
+        // Department Table
+        tbl_Department = new JTable();
+        model_department = new DefaultTableModel();
+        String[] depCols = { "Department" };
+        Vector depColumns = new Vector<>();
+        for (String val : depCols) {
+            depColumns.add(val);
+        }
+        model_department.setColumnIdentifiers(depColumns);
+        tbl_Department.setModel(model_department);
+        JScrollPane scrollDepartment = new JScrollPane(tbl_Department);
+
+        // Position Table
+        tbl_Position = new JTable();
+        model_position = new DefaultTableModel();
+        String[] posCols = { "Position" };
+        Vector posColumns = new Vector<>();
+        for (String val : posCols) {
+            posColumns.add(val);
+        }
+        model_position.setColumnIdentifiers(posColumns);
+        tbl_Position.setModel(model_position);
+        JScrollPane scrollPosition = new JScrollPane(tbl_Position);
+
+        panelTable.add(scrollEmployee);
+        panelTable.add(scrollDepartment);
+        panelTable.add(scrollPosition);
+
+        // Load data into department and position tables
+        loadDepartmentTable();
+        loadPositionTable();
+
+        return panelTable;
+    }
+
+    public void loadDepartmentTable() {
+        db = new Database("Department.txt");
+        db.displayRecords(model_department);
+    }
+
+    public void loadPositionTable() {
+        db = new Database("Position.txt");
+        db.displayRecords(model_position);
+    }
+
+    public String getRowCount() {
+        return "10" + model_employee.getRowCount();
+    }
+
+    public void getData() {
+        rowData = new Vector<String>();
+        rowData.add(txtID.getText());
+        rowData.add(txtName.getText());
+        rowData.add(cboGender.getSelectedItem().toString());
+        rowData.add(cboDepartment.getSelectedItem().toString());
+        rowData.add(cboPosition.getSelectedItem().toString());
+        rowData.add(txtSalary.getText());
+    }
+
+    public void resetComponents() {
+        txtID.setText(getRowCount());
+        btnAdd.setEnabled(true);
+        btnClear.setEnabled(true);
+        btnClose.setEnabled(true);
+        btnUpdate.setEnabled(false);
+        btnDelete.setEnabled(false);
+        txtName.setText("");
+        txtSalary.setText("");
+        cboGender.setSelectedIndex(0);
+        cboDepartment.setSelectedIndex(0);
+        cboPosition.setSelectedIndex(0);
+    }
+
+    public void tableClick() {
+        txtID.setText(getRowCount());
+        btnAdd.setEnabled(false);
+        btnUpdate.setEnabled(true);
+        btnDelete.setEnabled(true);
+    }
+
+    public void process() {
+        // Method implementation
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        // Handle actions
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        // Handle mouse clicks
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        // Handle mouse press
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        // Handle mouse release
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        // Handle mouse enter
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+        // Handle mouse exit
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        // Handle key press
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        // Handle key release
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+        // Handle key types
+    }
+
+    @Override
+    public void windowClosing(WindowEvent e) {
+        process();
+    }
+
+    // Implement other required methods from WindowListener interface
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                new MainProgram();
+            }
+        });
+    }
+
+    @Override
+    public void windowActivated(WindowEvent e) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'windowActivated'");
+    }
+
+    @Override
+    public void windowClosed(WindowEvent e) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'windowClosed'");
+    }
+
+    @Override
+    public void windowDeactivated(WindowEvent e) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'windowDeactivated'");
+    }
+
+    @Override
+    public void windowDeiconified(WindowEvent e) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'windowDeiconified'");
+    }
+
+    @Override
+    public void windowIconified(WindowEvent e) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'windowIconified'");
+    }
+
+    @Override
+    public void windowOpened(WindowEvent e) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'windowOpened'");
+    }
+}
+
+//MyFrame.java
+
+import java.awt.Color;
+import javax.swing.*;
+
+public class MyFrame extends JFrame {
+    private int W, H;
+
+    public MyFrame() {
+        super();
+        H = 800;
+        W = 500;
+        setWindowSize(W, H);
+    }
+
+    public MyFrame(int width, int height) {
+        super();
+        setWindowSize(width, height);
+    }
+
+    public MyFrame(String title, int width, int height) {
+        super(title);
+        setWindowSize(width, height);
+    }
+
+    public MyFrame(String title, int width, int height, boolean visible) {
+        super(title);
+        setWindowSize(width, height);
+        setVisible(visible);
+    }
+
+    public void setWindowSize(int width, int height) {
+        H = height;
+        W = width;
+        setSize(width, height);
+    }
+
+    public void setMyFrame(String title, int width, int height) {
+        setTitle(title);
+        setWindowSize(width, height);
+    }
+
+    public void setMyFrame(String title, int width, int height, boolean visible) {
+        setMyFrame(title, width, height);
+        setVisible(visible);
+    }
+
+    public void setMyFrame(String title, int width, int height, boolean visible, int closeOperation) {
+        setMyFrame(title, width, height, visible);
+        setDefaultCloseOperation(closeOperation);
+    }
+
+    public void setMyFrame(String title, int width, int height, boolean visible, int closeOperation,
+            boolean resizable) {
+        setMyFrame(title, width, height, visible, closeOperation);
+        setResizable(resizable);
+    }
+
+    public void setBackgroundColor(int red, int green, int blue, int opacity) {
+        getContentPane().setBackground(new Color(red, green, blue, opacity));
+    }
+
+    public JPanel setBackgroundImage(String file) {
+        JPanel panelBG = new JPanel();
+        JLabel img = new JLabel(new ImageIcon(file));
+        panelBG.add(img);
+        return panelBG;
+    }
+}
+
+Department.txt
+
+Human Resources
+Finance
+Marketing
+Sales
+IT
+Customer Service
+Operations
+Research and Development
+Legal
+Administration
+
+
+Position.txt
+
+Human Resources
+Finance
+Marketing
+Sales
+IT
+Customer Service
+Operations
+Research and Development
+Legal
+Administration

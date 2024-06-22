@@ -28,12 +28,12 @@ public class MainProgram extends MyFrame implements ActionListener, MouseListene
         employeeButtons();
         add(panelButtons).setBounds(10, 220, 300, 50); // Adjusted position and width
         add(panelEmployeeSearch()).setBounds(320, 10, 300, 30);
-        add(panelEmployeeTable()).setBounds(320, 50, 550, 290);
+        add(panelEmployeeTable()).setBounds(320, 50, 543, 290);
         listButtons();
-        add(panelListButtons).setBounds(320, 350, 550, 50); // Added new panel for Update, Delete, and Close buttons
+        add(panelListButtons).setBounds(320, 350, 543, 50); // Added new panel for Update, Delete, and Close buttons
         add(panelRight).setBounds(700, 10, 300, 330); // Adjusted to fit the department and position tables
-        add(setBackgroundImage("IMAGES/bg.jpg"));
-        setMyFrame("Employee Management System", 900, 450, true); // Adjusted frame size
+        // add(setBackgroundImage("IMAGES/bg.jpeg"));
+        setMyFrame("One Touch Employee Network", 900, 450, true); // Adjusted frame size
         setLocationRelativeTo(null);
         txtID.setText(getRowCount());
         btnAdd.addActionListener(this);
@@ -139,6 +139,13 @@ public class MainProgram extends MyFrame implements ActionListener, MouseListene
         model_employee.setColumnIdentifiers(columns);
         tbl_Employee.setModel(model_employee);
         tbl_Employee.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        // Adjust column widths to fit headers
+        for (int i = 0; i < tbl_Employee.getColumnCount(); i++) {
+            TableColumn column = tbl_Employee.getColumnModel().getColumn(i);
+            column.setPreferredWidth(column.getHeaderValue().toString().length() * 15);
+        }
+
         JScrollPane scrollEmployee = new JScrollPane(tbl_Employee);
 
         panelTable.add(scrollEmployee, BorderLayout.CENTER);
@@ -201,23 +208,51 @@ public class MainProgram extends MyFrame implements ActionListener, MouseListene
     public void actionPerformed(ActionEvent e) {
         db = new Database("Employee.txt");
         if (e.getSource() == btnAdd) {
+            if (areFieldsEmpty()) {
+                JOptionPane.showMessageDialog(this, "All fields must be filled out.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isNumeric(txtSalary.getText())) {
+                JOptionPane.showMessageDialog(this, "Salary must be a numeric value.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            } else if (isNumeric(txtName.getText())) {
+                JOptionPane.showMessageDialog(this, "Name must be a string.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             getData();
             db.storeToFile(String.join("#", rowData));
             model_employee.addRow(rowData);
-            hasEmployees = true;
+            updateRecords();
             resetComponents();
+            hasEmployees = true;
         } else if (e.getSource() == btnClear) {
             resetComponents();
         } else if (e.getSource() == btnUpdate) {
             int selectedRow = tbl_Employee.getSelectedRow();
             if (selectedRow != -1) {
+                if (areFieldsEmpty()) {
+                    JOptionPane.showMessageDialog(this, "All fields must be filled out.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (!isNumeric(txtSalary.getText())) {
+                    JOptionPane.showMessageDialog(this, "Salary must be a numeric value.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                } else if (isNumeric(txtName.getText())) {
+                    JOptionPane.showMessageDialog(this, "Name must be a string.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 getData();
-                for (int i = 0; i < rowData.size(); i++) {
+                for (int i = 0; i < model_employee.getColumnCount(); i++) {
                     model_employee.setValueAt(rowData.get(i), selectedRow, i);
                 }
                 updateRecords();
                 resetComponents();
-                btnAdd.setEnabled(true);
             }
         } else if (e.getSource() == btnDelete) {
             int selectedRow = tbl_Employee.getSelectedRow();
@@ -313,6 +348,19 @@ public class MainProgram extends MyFrame implements ActionListener, MouseListene
         panelRight.setVisible(hasEmployees);
         panelRight.revalidate();
         panelRight.repaint();
+    }
+
+    private boolean areFieldsEmpty() {
+        return txtName.getText().isEmpty() || txtSalary.getText().isEmpty();
+    }
+
+    private boolean isNumeric(String str) {
+        try {
+            Double.parseDouble(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public static void main(String[] args) {
